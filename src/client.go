@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/go-github/github"
+	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"io/ioutil"
 	"net/http"
@@ -11,17 +12,7 @@ import (
 	"strings"
 )
 
-type Payload struct {
-	Stuff Data
-}
-
-type Data struct {
-	Fruit   Fruits
-	Veggies Vegetables
-}
-
-type Fruits map[string]int
-type Vegetables map[string]int
+var store = sessions.NewCookieStore([]byte("github"))
 
 type User struct {
 	Login             *string `json:"login,omitempty"`
@@ -176,27 +167,18 @@ type CommitFile struct {
 	Patch     *string `json:"patch,omitempty"`
 }
 
-func serveRest(w http.ResponseWriter, r *http.Request) {
-
-	response, err := getJsonResponse()
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Fprintf(w, string(response))
-}
-
-func serveRest1(w http.ResponseWriter, r *http.Request) {
+func authGithub(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "https://github.com/login/oauth/authorize?client_id=c5376f36b92a55ac20e1", 301)
 }
 
-func serveRest2(w http.ResponseWriter, r *http.Request) {
+func authGithubCallback(w http.ResponseWriter, r *http.Request) {
+
 	code := r.URL.Query().Get("code")
 
 	res, err := http.Get("https://github.com/login/oauth/access_token?client_id=c5376f36b92a55ac20e1&client_secret=a2933fb99800ed7b683b70a139f2691d5e2953e8&code=" + code + "")
 
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
 
 	defer res.Body.Close()
@@ -204,81 +186,247 @@ func serveRest2(w http.ResponseWriter, r *http.Request) {
 	url, err := ioutil.ReadAll(res.Body)
 
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
-
-	//fmt.Println(string(url))
 
 	s := strings.Split(string(url), "&")
 
-	//fmt.Println(s)
-
 	at := s[0]
-
-	//fmt.Println(at)
 
 	access_token := strings.Split(at, "=")
 
-	//fmt.Println(access_token[1])
+	session, err := store.Get(r, "github")
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	session.Values["access_token"] = access_token[1]
+
+	session.Save(r, w)
+
+	if access_token != nil {
+		fmt.Fprintf(w, "Successfully Logged in!")
+	} else {
+		fmt.Fprintf(w, "You are not authenticated!")
+	}
+
+}
+
+func repos(w http.ResponseWriter, r *http.Request) {
+
+	session, err := store.Get(r, "github")
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	at, ok := session.Values["access_token"]
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	access_token, ok := at.(string)
+
+	if !ok {
+		fmt.Println(ok)
+	}
 
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: access_token[1]},
+		&oauth2.Token{AccessToken: access_token},
 	)
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 
 	client := github.NewClient(tc)
 
-	// list all repositories for the authenticated user
 	repos, _, err := client.Repositories.List("", nil)
 
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
 
 	repo, err := json.Marshal(repos)
 
 	if err != nil {
-		panic(err)
-	}
-
-	var dat []Repository
-	var d1 Repository
-
-	if err := json.Unmarshal([]byte(string(repo)), &dat); err != nil {
 		fmt.Println(err)
 	}
 
-	m := make(map[string]string)
-	n := make(map[string]string)
-	m1 := make(map[string]string)
+	var repoList []Repository
+	var repo1 Repository
 
-	for key := range dat {
-		dat1, _ := json.Marshal(dat[key])
+	if err := json.Unmarshal([]byte(string(repo)), &repoList); err != nil {
+		fmt.Println(err)
+	}
 
-		if err := json.Unmarshal([]byte(string(dat1)), &d1); err != nil {
+	for key := range repoList {
+		r1, _ := json.Marshal(repoList[key])
+
+		if err := json.Unmarshal([]byte(string(r1)), &repo1); err != nil {
+			fmt.Println(err)
+		}
+		id, _ := json.Marshal(repo1.ID)
+		name, _ := json.Marshal(repo1.Name)
+		userid, _ := json.Marshal(repo1.Owner.Login)
+
+		/*	t1, err := strconv.Unquote(string(userid))
+			t2, err := strconv.Unquote(string(id))
+			t3, err := strconv.Unquote(string(name))*/
+
+		fmt.Println(string(id), string(name), string(userid))
+	}
+
+	fmt.Fprintf(w, string(repo))
+
+}
+
+func reposComments(w http.ResponseWriter, r *http.Request) {
+
+	session, err := store.Get(r, "github")
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	at, ok := session.Values["access_token"]
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	access_token, ok := at.(string)
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: access_token},
+	)
+	tc := oauth2.NewClient(oauth2.NoContext, ts)
+
+	client := github.NewClient(tc)
+
+	repos, _, err := client.Repositories.List("", nil)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	repo, err := json.Marshal(repos)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	var repoList []Repository
+	var repo1 Repository
+
+	if err := json.Unmarshal([]byte(string(repo)), &repoList); err != nil {
+		fmt.Println(err)
+	}
+
+	map1 := make(map[string]string)
+
+	for key := range repoList {
+		r1, _ := json.Marshal(repoList[key])
+
+		if err := json.Unmarshal([]byte(string(r1)), &repo1); err != nil {
 			fmt.Println(err)
 		}
 
-		id1, _ := json.Marshal(d1.Name)
-		userid, _ := json.Marshal(d1.Owner.Login)
+		name, _ := json.Marshal(repo1.Name)
+		userid, _ := json.Marshal(repo1.Owner.Login)
+		//id, _ := json.Marshal(repo1.ID)
 
-		t1, err := strconv.Unquote(string(id1))
-		t2, err := strconv.Unquote(string(userid))
+		t1, err := strconv.Unquote(string(userid))
+		t2, err := strconv.Unquote(string(name))
+		//t3, err := strconv.Unquote(string(id))
 
-		// list all comments of all repos for the authenticated user
-		comments, _, err := client.Repositories.ListComments(t2, t1, nil)
-
-		if err != nil {
-			panic(err)
-		}
-
-		commits, _, err := client.Repositories.ListCommits(t2, t1, nil)
+		comments, _, err := client.Repositories.ListComments(t1, t2, nil)
 
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
 		}
 
 		comment, err := json.Marshal(comments)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		map1[string(name)] = string(comment)
+	}
+
+	fmt.Println(map1)
+
+	fmt.Fprintf(w, string(repo))
+
+}
+
+func reposCommitsComments(w http.ResponseWriter, r *http.Request) {
+
+	session, err := store.Get(r, "github")
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	at, ok := session.Values["access_token"]
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	access_token, ok := at.(string)
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: access_token},
+	)
+	tc := oauth2.NewClient(oauth2.NoContext, ts)
+
+	client := github.NewClient(tc)
+
+	repos, _, err := client.Repositories.List("", nil)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	repo, err := json.Marshal(repos)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	var repoList []Repository
+	var repo1 Repository
+
+	if err := json.Unmarshal([]byte(string(repo)), &repoList); err != nil {
+		fmt.Println(err)
+	}
+
+	map1 := make(map[string]string)
+
+	for key := range repoList {
+		r1, _ := json.Marshal(repoList[key])
+
+		if err := json.Unmarshal([]byte(string(r1)), &repo1); err != nil {
+			fmt.Println(err)
+		}
+
+		name, _ := json.Marshal(repo1.Name)
+		userid, _ := json.Marshal(repo1.Owner.Login)
+		//id, _ := json.Marshal(repo1.ID)
+
+		t1, err := strconv.Unquote(string(userid))
+		t2, err := strconv.Unquote(string(name))
+
+		commits, _, err := client.Repositories.ListCommits(t1, t2, nil)
 
 		if err != nil {
 			fmt.Println(err)
@@ -290,76 +438,50 @@ func serveRest2(w http.ResponseWriter, r *http.Request) {
 			fmt.Println(err)
 		}
 
-		var com []RepositoryCommit
-		var cm1 RepositoryCommit
+		var repoCommits []RepositoryCommit
+		var commit1 RepositoryCommit
 
-		if err := json.Unmarshal([]byte(string(commit)), &com); err != nil {
+		if err := json.Unmarshal([]byte(string(commit)), &repoCommits); err != nil {
 			fmt.Println(err)
 		}
 
-		for key := range com {
-			com1, _ := json.Marshal(com[key])
+		for key := range repoCommits {
+			repoCommit1, _ := json.Marshal(repoCommits[key])
 
-			if err := json.Unmarshal([]byte(string(com1)), &cm1); err != nil {
+			if err := json.Unmarshal([]byte(string(repoCommit1)), &commit1); err != nil {
 				fmt.Println(err)
 			}
 
-			sha, _ := json.Marshal(cm1.SHA)
+			sha, _ := json.Marshal(commit1.SHA)
 
 			t3, err := strconv.Unquote(string(sha))
 
-			comments1, _, err := client.Repositories.ListCommitComments(t2, t1, t3, nil)
+			comments, _, err := client.Repositories.ListCommitComments(t1, t2, t3, nil)
 
 			if err != nil {
-				panic(err)
+				fmt.Println(err)
 			}
 
-			comment1, err := json.Marshal(comments1)
-			m1[string(sha)] = string(comment1)
+			comment, err := json.Marshal(comments)
+			map1[string(sha)] = string(comment)
 
 		}
 
-		m[string(id1)] = string(comment)
-		n[string(id1)] = string(commit)
-
 	}
 
-	/*	for k, v := range m {
-		fmt.Printf("comments of %s -> %s\n", k, v)
-	}*/
-	for k, v := range m1 {
-		fmt.Printf("commit of %s -> %s\n", k, v)
-	}
+	fmt.Println(map1)
 
-	//fmt.Println(string(repo))
 	fmt.Fprintf(w, string(repo))
 
 }
 
 func main() {
 
-	http.HandleFunc("/", serveRest)
-	http.HandleFunc("/github", serveRest1)
-	http.HandleFunc("/github/callback", serveRest2)
+	http.HandleFunc("/auth/github", authGithub)
+	http.HandleFunc("/auth/github/callback", authGithubCallback)
+	http.HandleFunc("/repos", repos)
+	http.HandleFunc("/repos/comments", reposComments)
+	http.HandleFunc("/repos/:repos", reposComments)
+	http.HandleFunc("/repos/commits/comments", reposCommitsComments)
 	http.ListenAndServe("localhost:1337", nil)
-
-}
-
-func getJsonResponse() ([]byte, error) {
-
-	fruits := make(map[string]int)
-	fruits["Banana"] = 23
-	fruits["Apple"] = 4
-
-	vegetables := make(map[string]int)
-	vegetables["Carrets"] = 44
-	vegetables["Goolse"] = 7
-
-	d := Data{fruits, vegetables}
-	p := Payload{d}
-
-	//fmt.Println(p);
-
-	return json.MarshalIndent(p, "", " ")
-
 }
