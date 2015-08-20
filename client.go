@@ -7,6 +7,7 @@ import (
 	"golang.org/x/oauth2"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -23,437 +24,166 @@ type Fruits map[string]int
 type Vegetables map[string]int
 
 type User struct {
-	Login             string "json:login"
-	ID                int64  "json:id"
-	AvatarURL         string "json:avatar_url"
-	HTMLURL           string "json:html_url"
-	GravatarID        string "json:gravatar_id"
-	Type              string "json:type"
-	SiteAdmin         bool   "json:site_admin"
-	URL               string "json:url"
-	EventsURL         string "json:events_url"
-	FollowingURL      string "json:following_url"
-	FollowersURL      string "json:followers_url"
-	GistsURL          string "json:gists_url"
-	OrganizationsURL  string "json:organizations_url"
-	ReceivedEventsURL string "json:received_events_url"
-	ReposURL          string "json:repos_url"
-	StarredURL        string "json:starred_url"
-	SubscriptionsURL  string "json:subscriptions_url"
+	Login             *string `json:"login,omitempty"`
+	ID                *int64  `json:"id,omitempty"`
+	AvatarURL         *string `json:"avatar_url,omitempty"`
+	HTMLURL           *string `json:"html_url,omitempty"`
+	GravatarID        *string `json:"gravatar_id,omitempty"`
+	Type              *string `json:"type,omitempty"`
+	SiteAdmin         *bool   `json:"site_admin,omitempty"`
+	URL               *string `json:"url,omitempty"`
+	EventsURL         *string `json:"events_url,omitempty"`
+	FollowingURL      *string `json:"following_url,omitempty"`
+	FollowersURL      *string `json:"followers_url,omitempty"`
+	GistsURL          *string `json:"gists_url,omitempty"`
+	OrganizationsURL  *string `json:"organizations_url,omitempty"`
+	ReceivedEventsURL *string `json:"received_events_url,omitempty"`
+	ReposURL          *string `json:"repos_url,omitempty"`
+	StarredURL        *string `json:"starred_url,omitempty"`
+	SubscriptionsURL  *string `json:"subscriptions_url,omitempty"`
 }
 
-type Permissions struct {
-	admin bool "json:admin"
-	push  bool "json:push"
-	pull  bool "json:pull"
+type Permission struct {
+	Admin *bool `json:"admin,omitempty"`
+	Push  *bool `json:"push,omitempty"`
+	Pull  *bool `json:"pull,omitempty"`
 }
 
 type Repository struct {
-	ID               int64 "json:id"
-	Owner            User
-	Name             string "json:name"
-	FullName         string "json:fullName"
-	Description      string "json:description"
-	Homepage         string "json:homepage"
-	DefaultBranch    string "json:default_branch"
-	MasterBranch     string "json:master_branch"
-	CreatedAt        string "json:Timestamp"
-	PushedAt         string "json:Timestamp"
-	UpdatedAt        string "json:Timestamp"
-	HTMLURL          string "json:html_url"
-	CloneURL         string "json:clone_url"
-	GitURL           string "json:git_url"
-	SSHURL           string "json:ssh_url"
-	SVNURL           string "json:svn_url"
-	Language         string "json:language"
-	Fork             bool   "json:fork"
-	ForksCount       string "json:forks_count"
-	OpenIssuesCount  int64  "json:open_issues_count"
-	StargazersCount  int64  "json:stargazers_count"
-	WatchersCount    int64  "json:watchers_count"
-	Size             int64  "json:size"
-	Permissions      Permissions
-	Private          bool   "json:private"
-	HasIssues        bool   "json:has_issues"
-	HasWiki          bool   "json:has_wiki"
-	HasDownloads     bool   "json:has_downloads"
-	URL              string "json:url"
-	ArchiveURL       string "json:archive_url"
-	AssigneesURL     string "json:assignees_url"
-	BlobsURL         string "json:blobs_url"
-	BranchesURL      string "json:branches_url"
-	CollaboratorsURL string "json:collaborators_url"
-	CommentsURL      string "json:comments_url"
-	CommitsURL       string "json:commits_url"
-	CompareURL       string "json:compare_url"
-	ContentsURL      string "json:contents_url"
-	ContributorsURL  string "json:contributors_url"
-	DownloadsURL     string "json:downloads_url"
-	EventsURL        string "json:events_url"
-	ForksURL         string "json:forks_url"
-	GitCommitsURL    string "json:git_commits_url"
-	GitRefsURL       string "json:git_refs_url"
-	GitTagsURL       string "json:git_tags_url"
-	HooksURL         string "json:hooks_url"
-	IssueCommentURL  string "json: issue_comment_url"
-	IssueEventsURL   string "json: issue_events_url"
-	IssuesURL        string "json: issues_url"
-	KeysURL          string "json: keys_url"
-	LabelsURL        string "json: labels_url"
-	LanguagesURL     string "json: languages_url"
-	MergesURL        string "json : merges_url"
-	MilestonesURL    string "json: milestones_url"
-	NotificationsURL string "json: notifications_url"
-	PullsURL         string "json : pulls_url"
-	ReleasesURL      string "json: releases_url"
-	StargazersURL    string "json :stargazers_url"
-	StatusesURL      string "json: statuses_url"
-	SubscribersURL   string "json : subscribers_url"
-	SubscriptionURL  string "json: subscription_url"
-	TagsURL          string "json: tags_url"
-	TreesURL         string "json : trees_url"
-	TeamsURL         string "json : teams_url"
+	ID               *int64 `json:"id,omitempty"`
+	Owner            *User
+	Name             *string `json:"name,omitempty"`
+	FullName         *string `json:"full_name,omitempty"`
+	Description      *string `json:"description,omitempty"`
+	Homepage         *string `json:"homepage,omitempty"`
+	DefaultBranch    *string `json:"default_branch,omitempty"`
+	MasterBranch     *string `json:"master_branch,omitempty"`
+	CreatedAt        *string `json:"created_at,omitempty"`
+	PushedAt         *string `json:"pushed_at,omitempty"`
+	UpdatedAt        *string `json:"updated_at,omitempty"`
+	HTMLURL          *string `json:"html_url,omitempty"`
+	CloneURL         *string `json:"clone_url,omitempty"`
+	GitURL           *string `json:"git_url,omitempty"`
+	SSHURL           *string `json:"ssh_url,omitempty"`
+	SVNURL           *string `json:"svn_url,omitempty"`
+	Language         *string `json:"language,omitempty"`
+	Fork             *bool   `json:"fork,omitempty"`
+	ForksCount       *int64  `json:"forks_count,omitempty"`
+	OpenIssuesCount  *int64  `json:"open_issues_count,omitempty"`
+	StargazersCount  *int64  `json:"stargazers_count,omitempty"`
+	WatchersCount    *int64  `json:"watchers_count,omitempty"`
+	Size             *int64  `json:"size,omitempty"`
+	Permissions      *Permission
+	Private          *bool   `json:"private,omitempty"`
+	HasIssues        *bool   `json:"has_issues,omitempty"`
+	HasWiki          *bool   `json:"has_wiki,omitempty"`
+	HasDownloads     *bool   `json:"has_downloads,omitempty"`
+	URL              *string `json:"url,omitempty"`
+	ArchiveURL       *string `json:"archive_url,omitempty"`
+	AssigneesURL     *string `json:"assignees_url,omitempty"`
+	BlobsURL         *string `json:"blobs_url,omitempty"`
+	BranchesURL      *string `json:"branches_url,omitempty"`
+	CollaboratorsURL *string `json:"collaborators_url,omitempty"`
+	CommentsURL      *string `json:"comments_url,omitempty"`
+	CommitsURL       *string `json:"commits_url,omitempty"`
+	CompareURL       *string `json:"compare_url,omitempty"`
+	ContentsURL      *string `json:"contents_url,omitempty"`
+	ContributorsURL  *string `json:"contributors_url,omitempty"`
+	DownloadsURL     *string `json:"downloads_url,omitempty"`
+	EventsURL        *string `json:"events_url,omitempty"`
+	ForksURL         *string `json:"forks_url,omitempty"`
+	GitCommitsURL    *string `json:"git_commits_url,omitempty"`
+	GitRefsURL       *string `json:"git_refs_url,omitempty"`
+	GitTagsURL       *string `json:"git_tags_url,omitempty"`
+	HooksURL         *string `json:"hooks_url,omitempty"`
+	IssueCommentURL  *string `json:"issue_comment_url,omitempty"`
+	IssueEventsURL   *string `json:"issue_events_url,omitempty"`
+	IssuesURL        *string `json:"issues_url,omitempty"`
+	KeysURL          *string `json:"keys_url,omitempty"`
+	LabelsURL        *string `json:"labels_url,omitempty"`
+	LanguagesURL     *string `json:"languages_url,omitempty"`
+	MergesURL        *string `json:"merges_url,omitempty"`
+	MilestonesURL    *string `json:"milestones_url,omitempty"`
+	NotificationsURL *string `json:"notifications_url,omitempty"`
+	PullsURL         *string `json:"pulls_url,omitempty"`
+	ReleasesURL      *string `json:"releases_url,omitempty"`
+	StargazersURL    *string `json:"stargazers_url,omitempty"`
+	StatusesURL      *string `json:"statuses_url,omitempty"`
+	SubscribersURL   *string `json:"subscribers_url,omitempty"`
+	SubscriptionURL  *string `json:"subscription_url,omitempty"`
+	TagsURL          *string `json:"tags_url,omitempty"`
+	TreesURL         *string `json:"trees_url,omitempty"`
+	TeamsURL         *string `json:"teams_url,omitempty"`
 }
 
-/*type Login struct {
-  Login string "json: login"
-}
-type ID struct {
-  ID int64 "json:id"
-}
-type AvatarURL struct {
-  AvatarURL string "json:avatar_url"
-}
-type HTMLURL struct{
-  HTMLURL string "json:html_url"
-}
-type GravatarID struct {
-  GravatarID string "json:gravatar_id"
-}
-type Type struct {
-  Type string "json:type"
-}
-type SiteAdmin struct {
-  SiteAdmin bool "json:site_admin"
-}
-type URL struct {
-  URL string "json:url"
-}
-type EventsURL struct {
-  EventsURL string "json:events_url"
-}
-type FollowingURL struct {
-  FollowingURL string "json:following_url"
-}
-type FollowersURL struct {
-  FollowersURL string "json:followers_url"
-}
-type GistsURL struct {
-  GistsURL string "json:gists_url"
-}
-type OrganizationsURL struct {
-  OrganizationsURL string "json:organizations_url"
-}
-type ReceivedEventsURL struct {
-  ReceivedEventsURL string "json:received_events_url"
-}
-type ReposURL struct {
-  ReposURL string "json:repos_url"
-}
-type StarredURL struct {
-  StarredURL string "json:starred_url"
-}
-type SubscriptionsURL struct {
-  SubscriptionsURL string "json:subscriptions_url"
-}
-type admin struct {
-  admin bool "json:admin"
-}
-type push struct {
-  push bool "json:push"
-}
-type pull struct {
-  pull bool "json:pull"
-}
-type Name struct {
-  Name string "json:name"
-}
-type FullName struct {
-  FullName string "json:fullName"
-}
-type Description struct {
-  Description string "json:description"
-}
-type Homepage struct {
-  Homepage string "json:homepage"
-}
-type DefaultBranch struct {
-  DefaultBranch string "json:default_branch"
-}
-type MasterBranch struct {
-  MasterBranch string "json:master_branch"
-}
-type CreatedAt struct {
-  CreatedAt string "json:created_at"
-}
-type PushedAt struct {
-  PushedAt string "json:pushed_at"
-}
-type UpdatedAt struct {
-  UpdatedAt string "json:updated_at"
-}
-type CloneURL struct {
-  CloneURL string "json:clone_url"
-}
-type GitURL struct {
-  GitURL string "json:git_url"
-}
-type SSHURL struct {
-  SSHURL string "json:ssh_url"
-}
-type SVNURL struct {
-  SVNURL string "json:svn_url"
-}
-type Language struct {
-  Language string "json:language"
-}
-type Fork struct {
-  Fork bool "json:fork"
+type RepositoryComment struct {
+	HTMLURL   *string `json:"html_url,omitempty"`
+	URL       *string `json:"url,omitempty"`
+	ID        *int    `json:"id,omitempty"`
+	CommitID  *string `json:"commit_id,omitempty"`
+	User      *User
+	CreatedAt *string `json:"created_at,omitempty"`
+	UpdatedAt *string `json:"updated_at,omitempty"`
+	Line      *string `json:"line, omitempty"`
+	Body      *string `json:"body"`
+	Path      *string `json:"path,omitempty"`
+	Position  *int    `json:"position,omitempty"`
 }
 
-type ForksCount struct {
-  ForksCount string "json:forks_count"
+type RepositoryCommit struct {
+	SHA       *string      `json:"sha,omitempty"`
+	Commit    *Commit      `json:"commit,omitempty"`
+	Author    *User        `json:"author,omitempty"`
+	Committer *User        `json:"committer,omitempty"`
+	Parents   []Commit     `json:"parents,omitempty"`
+	Message   *string      `json:"message,omitempty"`
+	HTMLURL   *string      `json:"html_url,omitempty"`
+	Stats     *CommitStats `json:"stats,omitempty"`
+	Files     []CommitFile `json:"files,omitempty"`
 }
-type OpenIssuesCount struct {
-  OpenIssuesCount int64 "json:open_issues_count"
+
+type Commit struct {
+	SHA       *string       `json:"sha,omitempty"`
+	Author    *CommitAuthor `json:"author,omitempty"`
+	Committer *CommitAuthor `json:"committer,omitempty"`
+	Message   *string       `json:"message,omitempty"`
+	/*Tree         *Tree       `json:"tree,omitempty"`*/
+	Parents      []Commit     `json:"parents,omitempty"`
+	Stats        *CommitStats `json:"stats,omitempty"`
+	URL          *string      `json:"url,omitempty"`
+	CommentCount *int         `json:"comment_count,omitempty"`
 }
-type StargazersCount struct {
-  StargazersCount int64 "json:stargazers_count"
+
+type CommitAuthor struct {
+	Date  *string `json:"date,omitempty"`
+	Name  *string `json:"name,omitempty"`
+	Email *string `json:"email,omitempty"`
 }
-type WatchersCount struct {
-  WatchersCount int64 "json:watchers_count"
+
+type CommitStats struct {
+	Additions *int `json:"additions,omitempty"`
+	Deletions *int `json:"deletions,omitempty"`
+	Total     *int `json:"total,omitempty"`
 }
-type Size struct {
-  Size int64 "json:size"
+
+type CommitFile struct {
+	SHA       *string `json:"sha,omitempty"`
+	Filename  *string `json:"filename,omitempty"`
+	Additions *int    `json:"additions,omitempty"`
+	Deletions *int    `json:"deletions,omitempty"`
+	Changes   *int    `json:"changes,omitempty"`
+	Status    *string `json:"status,omitempty"`
+	Patch     *string `json:"patch,omitempty"`
 }
-type Private struct {
-  Private bool "json:private"
-}
-type HasIssues struct {
-  HasIssues bool "json:has_issues"
-}
-type HasWiki struct {
-  HasWiki bool "json:has_wiki"
-}
-type HasDownloads struct {
-  HasDownloads bool "json:has_downloads"
-}
-type ArchiveURL struct {
-  ArchiveURL string "json:archive_url"
-}
-type AssigneesURL struct {
-  AssigneesURL string "json:assignees_url"
-}
-type BlobsURL struct {
-  BlobsURL string "json:blobs_url"
-}
-type BranchesURL struct {
-  BranchesURL string "json:branches_url"
-}
-type CollaboratorsURL struct {
-   CollaboratorsURL string "json:collaborators_url"
-}
-type CommentsURL struct {
-  CommentsURL string "json:comments_url"
-}
-type CommitsURL struct {
-  CommitsURL string "json:commits_url"
-}
-type CompareURL struct {
-  CompareURL string "json:compare_url"
-}
-type ContentsURL struct {
-  ContentsURL string "json:contents_url"
-}
-type ContributorsURL struct {
-  ContributorsURL string "json:contributors_url"
-}
-type DownloadsURL struct {
-  DownloadsURL string "json:downloads_url"
-}
-type ForksURL struct {
-  ForksURL string "json:forks_url"
-}
-type TeamsURL struct {
-  TeamsURL string "json : teams_url"
-}
-type TreesURL struct {
-  TreesURL string "json : trees_url"
-}
-type TagsURL struct {
-  TagsURL string "json: tags_url"
-}
-type SubscriptionURL struct {
-  SubscriptionURL string "json: subscription_url"
-}
-type SubscribersURL struct {
-  SubscribersURL string "json : subscribers_url"
-}
-type StatusesURL struct {
-  StatusesURL string "json: statuses_url"
-}
-type StargazersURL struct {
-  StargazersURL string "json :stargazers_url"
-}
-type ReleasesURL struct {
- ReleasesURL string "json: releases_url"
-}
-type PullsURL struct {
-  PullsURL string "json : pulls_url"
-}
-type NotificationsURL struct {
-  NotificationsURL string "json: notifications_url"
-}
-type MilestonesURL struct {
-  MilestonesURL string "json: milestones_url"
-}
-type MergesURL struct {
-  MergesURL string "json : merges_url"
-}
-type LanguagesURL struct {
-  LanguagesURL string "json: languages_url"
-}
-type LabelsURL struct {
-  LabelsURL string "json: labels_url"
-}
-type KeysURL struct {
-  KeysURL string "json: keys_url"
-}
-type IssuesURL struct {
-  IssuesURL string "json: issues_url"
-}
-type IssueEventsURL struct {
-  IssueEventsURL string "json: issue_events_url"
-}
-type IssueCommentURL struct {
-  IssueCommentURL string "json: issue_comment_url"
-}
-type HooksURL struct {
-  HooksURL string "json:hooks_url"
-}
-type GitTagsURL struct {
-  GitTagsURL string "json:git_tags_url"
-}
-type GitRefsURL struct {
-  GitRefsURL string "json:git_refs_url"
-}
-type  GitCommitsURL struct{
-  GitCommitsURL string "json:git_commits_url"
-}
-type Owner struct{
-  Login Login
-  ID ID
-  AvatarURL AvatarURL
-  HTMLURL HTMLURL
-  GravatarID GravatarID
-  Type Type
-  SiteAdmin SiteAdmin
-  URL URL
-  EventsURL EventsURL
-  FollowingURL FollowingURL
-  FollowersURL FollowersURL
-  GistsURL GistsURL
-  OrganizationsURL OrganizationsURL
-  ReceivedEventsURL ReceivedEventsURL
-  ReposURL ReposURL
-  StarredURL StarredURL
-  SubscriptionsURL SubscriptionsURL
-}
-type Permissions struct{
-  admin admin
-  push push
-  pull pull
-}
-type  Repository struct{
-  ID ID
-  Owner Owner
-  Name Name
-  FullName FullName
-  Description Description
-  Homepage Homepage
-  DefaultBranch DefaultBranch
-  MasterBranch MasterBranch
-  CreatedAt CreatedAt
-  PushedAt PushedAt
-  UpdatedAt UpdatedAt
-  HTMLURL HTMLURL
-  CloneURL CloneURL
-  GitURL GitURL
-  SSHURL SSHURL
-  SVNURL SVNURL
-  Language Language
-  Fork Fork
-  ForksCount ForksCount
-  OpenIssuesCount OpenIssuesCount
-  StargazersCount StargazersCount
-  WatchersCount WatchersCount
-  Size Size
-  Permissions Permissions
-  Private Private
-  HasIssues HasIssues
-  HasWiki HasWiki
-  HasDownloads HasDownloads
-  URL URL
-  ArchiveURL ArchiveURL
-  AssigneesURL AssigneesURL
-  BlobsURL BlobsURL
-  BranchesURL BranchesURL
-  CollaboratorsURL CollaboratorsURL
-  CommentsURL CommentsURL
-  CommitsURL CommitsURL
-  CompareURL CompareURL
-  ContentsURL ContentsURL
-  ContributorsURL ContributorsURL
-  DownloadsURL DownloadsURL
-  EventsURL EventsURL
-  ForksURL ForksURL
-  GitCommitsURL GitCommitsURL
-  GitRefsURL GitRefsURL
-  GitTagsURL GitTagsURL
-  HooksURL HooksURL
-  IssueCommentURL IssueCommentURL
-  IssueEventsURL IssueEventsURL
-  IssuesURL IssuesURL
-  KeysURL KeysURL
-  LabelsURL LabelsURL
-  LanguagesURL LanguagesURL
-  MergesURL MergesURL
-  MilestonesURL MilestonesURL
-  NotificationsURL NotificationsURL
-  PullsURL PullsURL
-  ReleasesURL ReleasesURL
-  StargazersURL StargazersURL
-  StatusesURL StatusesURL
-  SubscribersURL SubscribersURL
-  SubscriptionURL SubscriptionURL
-  TagsURL TagsURL
-  TreesURL TreesURL
-  TeamsURL TeamsURL
-}*/
 
 func serveRest(w http.ResponseWriter, r *http.Request) {
 
-	/*	response, err := getJsonResponse()
-		if err != nil {
-			panic(err)
-		}*/
-	url, err := ioutil.ReadAll(r.Body)
-
+	response, err := getJsonResponse()
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Fprintf(w, string(url))
+	fmt.Fprintf(w, string(response))
 }
 
 func serveRest1(w http.ResponseWriter, r *http.Request) {
@@ -477,7 +207,7 @@ func serveRest2(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	fmt.Println(string(url))
+	//fmt.Println(string(url))
 
 	s := strings.Split(string(url), "&")
 
@@ -505,8 +235,6 @@ func serveRest2(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	//fmt.Println(repos)
-
 	repo, err := json.Marshal(repos)
 
 	if err != nil {
@@ -514,24 +242,97 @@ func serveRest2(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var dat []Repository
+	var d1 Repository
 
-	if err := json.Unmarshal(repo, &dat); err != nil {
+	if err := json.Unmarshal([]byte(string(repo)), &dat); err != nil {
 		fmt.Println(err)
 	}
-	/*
-		for key := range dat {
-			//fmt.Println(key, dat[key])
 
-			var rep Repository
+	m := make(map[string]string)
+	n := make(map[string]string)
+	m1 := make(map[string]string)
 
-			if err := json.Unmarshal(dat[key], &rep); err != nil {
+	for key := range dat {
+		dat1, _ := json.Marshal(dat[key])
+
+		if err := json.Unmarshal([]byte(string(dat1)), &d1); err != nil {
+			fmt.Println(err)
+		}
+
+		id1, _ := json.Marshal(d1.Name)
+		userid, _ := json.Marshal(d1.Owner.Login)
+
+		t1, err := strconv.Unquote(string(id1))
+		t2, err := strconv.Unquote(string(userid))
+
+		// list all comments of all repos for the authenticated user
+		comments, _, err := client.Repositories.ListComments(t2, t1, nil)
+
+		if err != nil {
+			panic(err)
+		}
+
+		commits, _, err := client.Repositories.ListCommits(t2, t1, nil)
+
+		if err != nil {
+			panic(err)
+		}
+
+		comment, err := json.Marshal(comments)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		commit, err := json.Marshal(commits)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		var com []RepositoryCommit
+		var cm1 RepositoryCommit
+
+		if err := json.Unmarshal([]byte(string(commit)), &com); err != nil {
+			fmt.Println(err)
+		}
+
+		for key := range com {
+			com1, _ := json.Marshal(com[key])
+
+			if err := json.Unmarshal([]byte(string(com1)), &cm1); err != nil {
 				fmt.Println(err)
 			}
-		}*/
+
+			sha, _ := json.Marshal(cm1.SHA)
+
+			t3, err := strconv.Unquote(string(sha))
+
+			comments1, _, err := client.Repositories.ListCommitComments(t2, t1, t3, nil)
+
+			if err != nil {
+				panic(err)
+			}
+
+			comment1, err := json.Marshal(comments1)
+			m1[string(sha)] = string(comment1)
+
+		}
+
+		m[string(id1)] = string(comment)
+		n[string(id1)] = string(commit)
+
+	}
+
+	/*	for k, v := range m {
+		fmt.Printf("comments of %s -> %s\n", k, v)
+	}*/
+	for k, v := range m1 {
+		fmt.Printf("commit of %s -> %s\n", k, v)
+	}
+
 	//fmt.Println(string(repo))
-	fmt.Println(repo)
 	fmt.Fprintf(w, string(repo))
-	//http.Redirect(w, r, "http://localhost:1337/", 301)
 
 }
 
