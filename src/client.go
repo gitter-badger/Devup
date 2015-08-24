@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/google/go-github/github"
 	"github.com/gorilla/sessions"
+	"github.com/julienschmidt/httprouter"
 	"golang.org/x/oauth2"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -134,15 +136,14 @@ type RepositoryCommit struct {
 }
 
 type Commit struct {
-	SHA       *string       `json:"sha,omitempty"`
-	Author    *CommitAuthor `json:"author,omitempty"`
-	Committer *CommitAuthor `json:"committer,omitempty"`
-	Message   *string       `json:"message,omitempty"`
-	/*Tree         *Tree       `json:"tree,omitempty"`*/
-	Parents      []Commit     `json:"parents,omitempty"`
-	Stats        *CommitStats `json:"stats,omitempty"`
-	URL          *string      `json:"url,omitempty"`
-	CommentCount *int         `json:"comment_count,omitempty"`
+	SHA          *string       `json:"sha,omitempty"`
+	Author       *CommitAuthor `json:"author,omitempty"`
+	Committer    *CommitAuthor `json:"committer,omitempty"`
+	Message      *string       `json:"message,omitempty"`
+	Parents      []Commit      `json:"parents,omitempty"`
+	Stats        *CommitStats  `json:"stats,omitempty"`
+	URL          *string       `json:"url,omitempty"`
+	CommentCount *int          `json:"comment_count,omitempty"`
 }
 
 type CommitAuthor struct {
@@ -167,11 +168,11 @@ type CommitFile struct {
 	Patch     *string `json:"patch,omitempty"`
 }
 
-func authGithub(w http.ResponseWriter, r *http.Request) {
+func authGithub(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	http.Redirect(w, r, "https://github.com/login/oauth/authorize?client_id=c5376f36b92a55ac20e1", 301)
 }
 
-func authGithubCallback(w http.ResponseWriter, r *http.Request) {
+func authGithubCallback(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	code := r.URL.Query().Get("code")
 
@@ -203,9 +204,38 @@ func authGithubCallback(w http.ResponseWriter, r *http.Request) {
 
 	session.Values["access_token"] = access_token[1]
 
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: access_token[1]},
+	)
+	tc := oauth2.NewClient(oauth2.NoContext, ts)
+
+	client := github.NewClient(tc)
+
+	owner, _, err := client.Users.Get("")
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	user, err := json.Marshal(owner)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	var userDetails User
+
+	if err := json.Unmarshal([]byte(string(user)), &userDetails); err != nil {
+		fmt.Println(err)
+	}
+
+	username, err := json.Marshal(userDetails.Login)
+
+	session.Values["userid"] = string(username)
+
 	session.Save(r, w)
 
-	if access_token != nil {
+	if access_token != nil && username != nil {
 		fmt.Fprintf(w, "Successfully Logged in!")
 	} else {
 		fmt.Fprintf(w, "You are not authenticated!")
@@ -213,7 +243,7 @@ func authGithubCallback(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func repos(w http.ResponseWriter, r *http.Request) {
+func repos(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	session, err := store.Get(r, "github")
 	if err != nil {
@@ -236,6 +266,7 @@ func repos(w http.ResponseWriter, r *http.Request) {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: access_token},
 	)
+
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 
 	client := github.NewClient(tc)
@@ -265,13 +296,10 @@ func repos(w http.ResponseWriter, r *http.Request) {
 		if err := json.Unmarshal([]byte(string(r1)), &repo1); err != nil {
 			fmt.Println(err)
 		}
+
 		id, _ := json.Marshal(repo1.ID)
 		name, _ := json.Marshal(repo1.Name)
 		userid, _ := json.Marshal(repo1.Owner.Login)
-
-		/*	t1, err := strconv.Unquote(string(userid))
-			t2, err := strconv.Unquote(string(id))
-			t3, err := strconv.Unquote(string(name))*/
 
 		fmt.Println(string(id), string(name), string(userid))
 	}
@@ -280,7 +308,67 @@ func repos(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func reposComments(w http.ResponseWriter, r *http.Request) {
+func repoComments(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+	session, err := store.Get(r, "github")
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	at, ok := session.Values["access_token"]
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	access_token, ok := at.(string)
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	uid, ok := session.Values["userid"]
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	userid, ok := uid.(string)
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: access_token},
+	)
+	tc := oauth2.NewClient(oauth2.NoContext, ts)
+
+	client := github.NewClient(tc)
+
+	fmt.Println(string(userid))
+
+	t1, err := strconv.Unquote(string(userid))
+	t2 := string(ps.ByName("repo"))
+
+	comments, _, err := client.Repositories.ListComments(t1, t2, nil)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	comment, err := json.Marshal(comments)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Fprintf(w, string(comment))
+
+}
+
+func reposComments(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	session, err := store.Get(r, "github")
 	if err != nil {
@@ -337,11 +425,9 @@ func reposComments(w http.ResponseWriter, r *http.Request) {
 
 		name, _ := json.Marshal(repo1.Name)
 		userid, _ := json.Marshal(repo1.Owner.Login)
-		//id, _ := json.Marshal(repo1.ID)
 
 		t1, err := strconv.Unquote(string(userid))
 		t2, err := strconv.Unquote(string(name))
-		//t3, err := strconv.Unquote(string(id))
 
 		comments, _, err := client.Repositories.ListComments(t1, t2, nil)
 
@@ -364,7 +450,206 @@ func reposComments(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func reposCommitsComments(w http.ResponseWriter, r *http.Request) {
+func repoCommitsComments(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+	session, err := store.Get(r, "github")
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	at, ok := session.Values["access_token"]
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	access_token, ok := at.(string)
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	uid, ok := session.Values["userid"]
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	userid, ok := uid.(string)
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: access_token},
+	)
+	tc := oauth2.NewClient(oauth2.NoContext, ts)
+
+	client := github.NewClient(tc)
+
+	t1, err := strconv.Unquote(string(userid))
+	t2 := string(ps.ByName("repo"))
+
+	commits, _, err := client.Repositories.ListCommits(t1, t2, nil)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	commit, err := json.Marshal(commits)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	var repoCommits []RepositoryCommit
+	var commit1 RepositoryCommit
+
+	if err := json.Unmarshal([]byte(string(commit)), &repoCommits); err != nil {
+		fmt.Println(err)
+	}
+
+	for key := range repoCommits {
+		repoCommit1, _ := json.Marshal(repoCommits[key])
+
+		if err := json.Unmarshal([]byte(string(repoCommit1)), &commit1); err != nil {
+			fmt.Println(err)
+		}
+
+		sha, _ := json.Marshal(commit1.SHA)
+
+		t3, err := strconv.Unquote(string(sha))
+
+		comments, _, err := client.Repositories.ListCommitComments(t1, t2, t3, nil)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		comment, err := json.Marshal(comments)
+		fmt.Println(string(comment))
+	}
+
+	fmt.Fprintf(w, string(commit))
+
+}
+
+func repoCommits(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+	session, err := store.Get(r, "github")
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	at, ok := session.Values["access_token"]
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	access_token, ok := at.(string)
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	uid, ok := session.Values["userid"]
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	userid, ok := uid.(string)
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: access_token},
+	)
+	tc := oauth2.NewClient(oauth2.NoContext, ts)
+
+	client := github.NewClient(tc)
+
+	t1, err := strconv.Unquote(string(userid))
+	t2 := string(ps.ByName("repo"))
+
+	commits, _, err := client.Repositories.ListCommits(t1, t2, nil)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	commit, err := json.Marshal(commits)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Fprintf(w, string(commit))
+
+}
+
+func repoCommitComments(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+	session, err := store.Get(r, "github")
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	at, ok := session.Values["access_token"]
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	access_token, ok := at.(string)
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	uid, ok := session.Values["userid"]
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	userid, ok := uid.(string)
+
+	if !ok {
+		fmt.Println(ok)
+	}
+
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: access_token},
+	)
+	tc := oauth2.NewClient(oauth2.NoContext, ts)
+
+	client := github.NewClient(tc)
+
+	t1, err := strconv.Unquote(string(userid))
+	t2 := string(ps.ByName("repo"))
+	t3 := string(ps.ByName("commit"))
+
+	comments, _, err := client.Repositories.ListCommitComments(t1, t2, t3, nil)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	comment, err := json.Marshal(comments)
+
+	fmt.Fprintf(w, string(comment))
+
+}
+
+func reposCommitsComments(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	session, err := store.Get(r, "github")
 	if err != nil {
@@ -475,13 +760,24 @@ func reposCommitsComments(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	fmt.Fprint(w, "Welcome!\n")
+}
+
+func Hello(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	fmt.Fprintf(w, "hello, %s!\n", ps.ByName("name"))
+}
+
 func main() {
 
-	http.HandleFunc("/auth/github", authGithub)
-	http.HandleFunc("/auth/github/callback", authGithubCallback)
-	http.HandleFunc("/repos", repos)
-	http.HandleFunc("/repos/comments", reposComments)
-	http.HandleFunc("/repos/:repos", reposComments)
-	http.HandleFunc("/repos/commits/comments", reposCommitsComments)
-	http.ListenAndServe("localhost:1337", nil)
+	router := httprouter.New()
+	router.GET("/", Index)
+	router.GET("/hello/:name", Hello)
+	router.GET("/auth/github", authGithub)
+	router.GET("/auth/github/callback", authGithubCallback)
+	router.GET("/repos", repos)
+	router.GET("/repos/:repo/comments", repoComments)
+	router.GET("/repos/:repo/commits", repoCommits)
+	router.GET("/repos/:repo/commits/:commit/comments", repoCommitComments)
+	log.Fatal(http.ListenAndServe("localhost:1337", router))
 }
