@@ -17,23 +17,23 @@ import (
 var store = sessions.NewCookieStore([]byte("github"))
 
 type User struct {
-	Login             *string `json:"login,omitempty"`
-	ID                *int64  `json:"id,omitempty"`
-	AvatarURL         *string `json:"avatar_url,omitempty"`
-	HTMLURL           *string `json:"html_url,omitempty"`
-	GravatarID        *string `json:"gravatar_id,omitempty"`
-	Type              *string `json:"type,omitempty"`
-	SiteAdmin         *bool   `json:"site_admin,omitempty"`
-	URL               *string `json:"url,omitempty"`
-	EventsURL         *string `json:"events_url,omitempty"`
-	FollowingURL      *string `json:"following_url,omitempty"`
-	FollowersURL      *string `json:"followers_url,omitempty"`
-	GistsURL          *string `json:"gists_url,omitempty"`
-	OrganizationsURL  *string `json:"organizations_url,omitempty"`
-	ReceivedEventsURL *string `json:"received_events_url,omitempty"`
-	ReposURL          *string `json:"repos_url,omitempty"`
-	StarredURL        *string `json:"starred_url,omitempty"`
-	SubscriptionsURL  *string `json:"subscriptions_url,omitempty"`
+	Login *string `json:"login,omitempty"`
+	ID    *int64  `json:"id,omitempty"` /*
+		AvatarURL         *string `json:"avatar_url,omitempty"`
+		HTMLURL           *string `json:"html_url,omitempty"`
+		GravatarID        *string `json:"gravatar_id,omitempty"`
+		Type              *string `json:"type,omitempty"`
+		SiteAdmin         *bool   `json:"site_admin,omitempty"`
+		URL               *string `json:"url,omitempty"`
+		EventsURL         *string `json:"events_url,omitempty"`
+		FollowingURL      *string `json:"following_url,omitempty"`
+		FollowersURL      *string `json:"followers_url,omitempty"`
+		GistsURL          *string `json:"gists_url,omitempty"`
+		OrganizationsURL  *string `json:"organizations_url,omitempty"`
+		ReceivedEventsURL *string `json:"received_events_url,omitempty"`
+		ReposURL          *string `json:"repos_url,omitempty"`
+		StarredURL        *string `json:"starred_url,omitempty"`
+		SubscriptionsURL  *string `json:"subscriptions_url,omitempty"`*/
 }
 
 type Permission struct {
@@ -43,11 +43,11 @@ type Permission struct {
 }
 
 type Repository struct {
-	ID               *int64 `json:"id,omitempty"`
-	Owner            *User
-	Name             *string `json:"name,omitempty"`
-	FullName         *string `json:"full_name,omitempty"`
-	Description      *string `json:"description,omitempty"`
+	ID       *int64 `json:"id,omitempty"`
+	Owner    *User
+	Name     *string `json:"name,omitempty"`
+	FullName *string `json:"full_name,omitempty"`
+	/*Description      *string `json:"description,omitempty"`
 	Homepage         *string `json:"homepage,omitempty"`
 	DefaultBranch    *string `json:"default_branch,omitempty"`
 	MasterBranch     *string `json:"master_branch,omitempty"`
@@ -106,7 +106,7 @@ type Repository struct {
 	SubscriptionURL  *string `json:"subscription_url,omitempty"`
 	TagsURL          *string `json:"tags_url,omitempty"`
 	TreesURL         *string `json:"trees_url,omitempty"`
-	TeamsURL         *string `json:"teams_url,omitempty"`
+	TeamsURL         *string `json:"teams_url,omitempty"`*/
 }
 
 type RepositoryComment struct {
@@ -166,6 +166,11 @@ type CommitFile struct {
 	Changes   *int    `json:"changes,omitempty"`
 	Status    *string `json:"status,omitempty"`
 	Patch     *string `json:"patch,omitempty"`
+}
+
+type Comments struct {
+	Body *string `json:"body"`
+	User *User
 }
 
 func authGithub(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -284,13 +289,12 @@ func repos(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 
 	var repoList []Repository
-	var repo1 Repository
 
 	if err := json.Unmarshal([]byte(string(repo)), &repoList); err != nil {
 		fmt.Println(err)
 	}
 
-	for key := range repoList {
+	/*	for key := range repoList {
 		r1, _ := json.Marshal(repoList[key])
 
 		if err := json.Unmarshal([]byte(string(r1)), &repo1); err != nil {
@@ -302,9 +306,12 @@ func repos(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		userid, _ := json.Marshal(repo1.Owner.Login)
 
 		fmt.Println(string(id), string(name), string(userid))
-	}
+	}*/
 
-	fmt.Fprintf(w, string(repo))
+	repoL, err := json.Marshal(repoList)
+
+	fmt.Println(string(repoL))
+	fmt.Fprintf(w, string(repoL))
 
 }
 
@@ -347,8 +354,6 @@ func repoComments(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 
 	client := github.NewClient(tc)
 
-	fmt.Println(string(userid))
-
 	t1, err := strconv.Unquote(string(userid))
 	t2 := string(ps.ByName("repo"))
 
@@ -364,7 +369,29 @@ func repoComments(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		fmt.Println(err)
 	}
 
-	fmt.Fprintf(w, string(comment))
+	//var cmt []Comments
+	var repoComments []Comments
+	//var repoComment Comments
+
+	if err := json.Unmarshal([]byte(string(comment)), &repoComments); err != nil {
+		fmt.Println(err)
+	}
+
+	/*	for key := range repoComments {
+		repoCmt, _ := json.Marshal(repoComments[key])
+
+		if err := json.Unmarshal([]byte(string(repoCmt)), &repoComment); err != nil {
+			fmt.Println(err)
+		}
+		body, _ := json.Marshal(repoComment.Body)
+		fmt.Println(string(body))
+	}*/
+
+	cmt, err := json.Marshal(repoComments)
+
+	fmt.Println(string(cmt))
+
+	fmt.Fprintf(w, string(cmt))
 
 }
 
@@ -635,7 +662,7 @@ func repoCommitComments(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 
 	t1, err := strconv.Unquote(string(userid))
 	t2 := string(ps.ByName("repo"))
-	t3 := string(ps.ByName("commit"))
+	t3 := string(ps.ByName("sha"))
 
 	comments, _, err := client.Repositories.ListCommitComments(t1, t2, t3, nil)
 
@@ -645,7 +672,31 @@ func repoCommitComments(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 
 	comment, err := json.Marshal(comments)
 
-	fmt.Fprintf(w, string(comment))
+	fmt.Println(string(comment))
+
+	//var cmt []Comments
+	var repoComments []Comments
+	//var repoComment Comments
+
+	if err := json.Unmarshal([]byte(string(comment)), &repoComments); err != nil {
+		fmt.Println(err)
+	}
+
+	/*	for key := range repoComments {
+		repoCmt, _ := json.Marshal(repoComments[key])
+
+		if err := json.Unmarshal([]byte(string(repoCmt)), &repoComment); err != nil {
+			fmt.Println(err)
+		}
+		body, _ := json.Marshal(repoComment.Body)
+		fmt.Println(string(body))
+	}*/
+
+	cmt, err := json.Marshal(repoComments)
+
+	fmt.Println(string(cmt))
+
+	fmt.Fprintf(w, string(cmt))
 
 }
 
@@ -778,6 +829,6 @@ func main() {
 	router.GET("/repos", repos)
 	router.GET("/repos/:repo/comments", repoComments)
 	router.GET("/repos/:repo/commits", repoCommits)
-	router.GET("/repos/:repo/commits/:commit/comments", repoCommitComments)
+	router.GET("/repos/:repo/commits/:sha/comments", repoCommitComments)
 	log.Fatal(http.ListenAndServe("localhost:1337", router))
 }
